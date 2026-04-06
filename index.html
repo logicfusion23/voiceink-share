@@ -258,8 +258,10 @@
 const SUPABASE_URL = 'https://sbjfeylazeqzxlsnxaab.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiamZleWxhemVxenhsc254YWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzk1MjEsImV4cCI6MjA5MDgxNTUyMX0.tBfxdnv-7Cqyalqjx8PCGimkDW6KhqbZG1iXnanXP7U';
 
-const params = new URLSearchParams(window.location.hash.replace('#', '?'));
-const token = params.get('t');
+// Read token from hash (#t=xxx) or query string (?t=xxx)
+const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+const queryParams = new URLSearchParams(window.location.search);
+const token = hashParams.get('t') || queryParams.get('t');
 
 let itemData = null;
 let audio = null;
