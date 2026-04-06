@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Voice Task</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', system-ui, sans-serif;
+    background: #FAFAF8;
+    color: #1a1a1a;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    max-width: 420px;
+    width: 100%;
+    padding-top: 40px;
+  }
+
+  /* Sender header */
+  .sender {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .sender-photo {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0e8e0;
+  }
+  .sender-photo-letter {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EB9461, #E07A3A);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 18px;
+  }
+  .sender-info { flex: 1; }
+  .sender-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .sender-label { font-size: 13px; color: #999; margin-top: 1px; }
+
+  /* Voice player */
+  .player {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .play-btn {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EB9461, #E07A3A);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(235,148,97,0.3);
+  }
+  .play-btn:active { transform: scale(0.93); }
+  .play-btn svg { width: 22px; height: 22px; fill: white; }
+  .waveform-wrap { flex: 1; height: 40px; }
+  .waveform-wrap canvas { width: 100%; height: 100%; display: block; }
+  .player-time { font-size: 12px; color: #999; margin-top: 8px; text-align: right; }
+  .no-audio { color: #999; font-size: 13px; text-align: center; padding: 8px 0; }
+
+  /* Task card */
+  .task-card {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .task-title {
+    font-size: 18px; font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+  .task-source {
+    font-size: 14px; color: #666;
+    line-height: 1.5;
+    border-left: 3px solid #EB9461;
+    padding-left: 12px;
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+  .task-deadline {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600;
+    color: #EB9461;
+    background: rgba(235,148,97,0.08);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* Action buttons */
+  .actions {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .action-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.12s, opacity 0.12s;
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .action-btn.primary {
+    background: linear-gradient(135deg, #34C759, #28A745);
+    color: white;
+    box-shadow: 0 2px 8px rgba(52,199,89,0.25);
+  }
+  .action-btn.secondary {
+    background: rgba(0,122,255,0.08);
+    color: #007AFF;
+  }
+  .action-btn.tertiary {
+    background: rgba(0,0,0,0.04);
+    color: #666;
+  }
+  .action-btn:disabled {
+    opacity: 0.5; cursor: not-allowed; transform: none;
+  }
+  .action-btn .icon { font-size: 18px; }
+
+  /* Reply box */
+  .reply-box {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .reply-box.visible { display: block; }
+  .reply-box textarea {
+    width: 100%;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .reply-box textarea:focus { border-color: #EB9461; }
+  .reply-send {
+    margin-top: 10px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #EB9461, #E07A3A);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .reply-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Status banner */
+  .status-banner {
+    text-align: center;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .status-banner.done {
+    display: block;
+    background: rgba(52,199,89,0.08);
+    color: #28A745;
+  }
+  .status-banner.on_it {
+    display: block;
+    background: rgba(0,122,255,0.08);
+    color: #007AFF;
+  }
+  .status-banner.replied {
+    display: block;
+    background: rgba(235,148,97,0.08);
+    color: #E07A3A;
+  }
+
+  /* Loading / Error */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+    font-size: 15px;
+  }
+  .error {
+    text-align: center;
+    padding: 60px 20px;
+    color: #E53E3E;
+    font-size: 15px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px 0 40px;
+    font-size: 11px;
+    color: #ccc;
+  }
+  .footer a { color: #bbb; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="loading" id="loading">Loading task...</div>
+  <div class="error" id="error" style="display:none"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://sbjfeylazeqzxlsnxaab.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiamZleWxhemVxenhsc254YWFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzk1MjEsImV4cCI6MjA5MDgxNTUyMX0.tBfxdnv-7Cqyalqjx8PCGimkDW6KhqbZG1iXnanXP7U';
+
+const params = new URLSearchParams(window.location.hash.replace('#', '?'));
+const token = params.get('t');
+
+let itemData = null;
+let audio = null;
+let isPlaying = false;
+let animFrame = null;
+
+async function supaFetch(method, path, body) {
+  const opts = {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'PATCH' ? 'return=representation' : 'return=representation'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(SUPABASE_URL + '/rest/v1' + path, opts);
+  if (!res.ok) throw new Error('Request failed: ' + res.status);
+  return res.json();
+}
+
+async function loadItem() {
+  if (!token) {
+    showError('No task token found.');
+    return;
+  }
+  try {
+    const items = await supaFetch('GET', '/shared_items?token=eq.' + token + '&select=*');
+    if (!items || items.length === 0) {
+      showError('This task was not found or has been removed.');
+      return;
+    }
+    itemData = items[0];
+
+    // Mark as seen
+    if (itemData.status === 'sent') {
+      await supaFetch('PATCH', '/shared_items?token=eq.' + token, {
+        status: 'seen',
+        seen_at: new Date().toISOString()
+      });
+      itemData.status = 'seen';
+    }
+
+    render();
+  } catch (e) {
+    showError('Something went wrong. Please try again.');
+    console.error(e);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const d = itemData;
+  const isDone = d.status === 'done';
+  const isOnIt = d.status === 'on_it';
+  const hasReply = d.reply_text && d.reply_text.trim().length > 0;
+
+  let senderAvatar;
+  if (d.sender_photo) {
+    senderAvatar = `<img class="sender-photo" src="${esc(d.sender_photo)}" alt="">`;
+  } else {
+    const letter = (d.sender_name || '?')[0].toUpperCase();
+    senderAvatar = `<div class="sender-photo-letter">${letter}</div>`;
+  }
+
+  let playerHTML = '';
+  if (d.audio_url) {
+    playerHTML = `
+      <div class="player">
+        <div class="player-row">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">
+            <svg id="playIcon" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+          </button>
+          <div class="waveform-wrap"><canvas id="waveCanvas"></canvas></div>
+        </div>
+        <div class="player-time" id="playerTime">0:00</div>
+      </div>`;
+  }
+
+  let deadlineHTML = '';
+  if (d.deadline) {
+    deadlineHTML = `<div class="task-deadline">⏰ ${esc(d.deadline)}</div>`;
+  }
+
+  let sourceHTML = '';
+  if (d.source_text) {
+    sourceHTML = `<div class="task-source">"${esc(d.source_text)}"</div>`;
+  }
+
+  let statusBanner = '';
+  if (isDone) {
+    statusBanner = '<div class="status-banner done">✓ You marked this as done</div>';
+  } else if (isOnIt) {
+    statusBanner = '<div class="status-banner on_it">👍 You\'re on it</div>';
+  }
+  if (hasReply) {
+    statusBanner += `<div class="status-banner replied">💬 Your reply was sent</div>`;
+  }
+
+  app.innerHTML = `
+    <div class="sender">
+      ${senderAvatar}
+      <div class="sender-info">
+        <div class="sender-name">${esc(d.sender_name)}</div>
+        <div class="sender-label">sent you a voice task</div>
+      </div>
+    </div>
+
+    ${playerHTML}
+
+    <div class="task-card">
+      <div class="task-title">${esc(d.task_text)}</div>
+      ${sourceHTML}
+      ${deadlineHTML}
+    </div>
+
+    ${statusBanner}
+
+    <div class="actions" id="actions" ${isDone ? 'style="display:none"' : ''}>
+      <button class="action-btn primary" onclick="setStatus('done')" ${isDone ? 'disabled' : ''}>
+        <span class="icon">✓</span> Done
+      </button>
+      <button class="action-btn secondary" onclick="setStatus('on_it')" ${isOnIt || isDone ? 'disabled' : ''}>
+        <span class="icon">👍</span> On it
+      </button>
+      <button class="action-btn tertiary" onclick="showReply()">
+        <span class="icon">💬</span> Reply
+      </button>
+    </div>
+
+    <div class="reply-box" id="replyBox">
+      <textarea id="replyText" placeholder="Type your reply...">${esc(d.reply_text || '')}</textarea>
+      <button class="reply-send" onclick="sendReply()" id="replyBtn">Send Reply</button>
+    </div>
+
+    <div class="footer">
+      Powered by <a href="#">VoiceInk</a>
+    </div>
+  `;
+
+  if (d.audio_url) {
+    audio = new Audio(d.audio_url);
+    audio.addEventListener('ended', () => { isPlaying = false; updatePlayIcon(); });
+    drawStaticWaveform();
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function togglePlay() {
+  if (!audio) return;
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    cancelAnimationFrame(animFrame);
+  } else {
+    audio.play();
+    isPlaying = true;
+    updateTime();
+  }
+  updatePlayIcon();
+}
+
+function updatePlayIcon() {
+  const icon = document.getElementById('playIcon');
+  if (!icon) return;
+  icon.innerHTML = isPlaying
+    ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
+    : '<polygon points="8,5 19,12 8,19"/>';
+}
+
+function updateTime() {
+  if (!audio || !isPlaying) return;
+  const el = document.getElementById('playerTime');
+  if (el) {
+    const cur = formatTime(audio.currentTime);
+    const dur = formatTime(audio.duration || 0);
+    el.textContent = cur + ' / ' + dur;
+  }
+  drawPlayingWaveform();
+  animFrame = requestAnimationFrame(updateTime);
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function drawStaticWaveform() {
+  const canvas = document.getElementById('waveCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
+  const bars = 40;
+  const gap = 3;
+  const barW = (w - (bars - 1) * gap) / bars;
+
+  // Generate pseudo-random waveform
+  const seed = (itemData.task_text || '').length;
+  for (let i = 0; i < bars; i++) {
+    const norm = Math.sin(i * 0.3 + seed * 0.1) * 0.3 + 0.4 + Math.sin(i * 0.7) * 0.2;
+    const barH = Math.max(4, norm * h * 0.85);
+    const x = i * (barW + gap);
+    const y = (h - barH) / 2;
+    ctx.fillStyle = 'rgba(235,148,97,0.25)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, 2);
+    ctx.fill();
+  }
+}
+
+function drawPlayingWaveform() {
+  const canvas = document.getElementById('waveCanvas');
+  if (!canvas || !audio) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
+  ctx.clearRect(0, 0, w * dpr, h * dpr);
+  ctx.save();
+
+  const bars = 40;
+  const gap = 3;
+  const barW = (w - (bars - 1) * gap) / bars;
+  const progress = audio.duration ? audio.currentTime / audio.duration : 0;
+  const progressBar = Math.floor(progress * bars);
+
+  const seed = (itemData.task_text || '').length;
+  for (let i = 0; i < bars; i++) {
+    const norm = Math.sin(i * 0.3 + seed * 0.1) * 0.3 + 0.4 + Math.sin(i * 0.7) * 0.2;
+    const barH = Math.max(4, norm * h * 0.85);
+    const x = i * (barW + gap);
+    const y = (h - barH) / 2;
+    ctx.fillStyle = i <= progressBar ? 'rgba(235,148,97,0.85)' : 'rgba(235,148,97,0.2)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+async function setStatus(status) {
+  const btns = document.querySelectorAll('.action-btn');
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    await supaFetch('PATCH', '/shared_items?token=eq.' + token, {
+      status: status,
+      responded_at: new Date().toISOString()
+    });
+    itemData.status = status;
+    render();
+  } catch (e) {
+    console.error(e);
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+function showReply() {
+  const box = document.getElementById('replyBox');
+  if (box) {
+    box.classList.toggle('visible');
+    if (box.classList.contains('visible')) {
+      document.getElementById('replyText')?.focus();
+    }
+  }
+}
+
+async function sendReply() {
+  const text = document.getElementById('replyText')?.value?.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('replyBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+  try {
+    await supaFetch('PATCH', '/shared_items?token=eq.' + token, {
+      reply_text: text,
+      status: itemData.status === 'sent' || itemData.status === 'seen' ? 'on_it' : itemData.status,
+      responded_at: new Date().toISOString()
+    });
+    itemData.reply_text = text;
+    render();
+  } catch (e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Reply'; }
+  }
+}
+
+// CanvasRenderingContext2D.roundRect polyfill
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    this.closePath();
+  };
+}
+
+loadItem();
+</script>
+</body>
+</html>
